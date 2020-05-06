@@ -34,11 +34,13 @@ options(stringsAsFactors = F) # import quality
 par(mar=c(1,1,1,1)) # ensure plot margin sizes are always large enough
 
 # load soil-transmitted helminths data ----
-STH_kenya <- "Data/Kenya_STH.csv" %>% read.csv(header = T) %>%
-  select(full_name_paper, lat, long, tri_prev)
+STH_kenya <- "Kenya_STH.csv" %>% read.csv(header = T) %>%
+  select(full_name_paper, lat, long, tri_prev, tri_np)
 
 STH_kenya <- STH_kenya %>%
   mutate(tri_prev = tri_prev/100,
+         tri_examined = tri_np/tri_prev,
+         tri_nneg = tri_examined - tri_np,
          tri_prev_logit = car::logit(tri_prev) + 0.0001) %>%
   drop_na(tri_prev_logit)
 
@@ -189,13 +191,16 @@ Here is a visualization of the vector-based covariates listed above:
 
 ```{r, include=F}
 # load covariates ----
-roads <- readOGR("Data/KEN_rds", "KEN_roads") # roads
-railroads <- readOGR("Data/KEN_rrd", "KEN_rails") # railroads
-lakes <- readOGR("Data/KEN_wat", "KEN_water_areas_dcw") # inland lakes
-canals <- readOGR("Data/KEN_wat", "KEN_water_lines_dcw") #inland canals and rivers
+KEN_Adm_0 <- raster::getData("GADM", country="KEN", level=0)
+alt <- raster::getData('alt', country = 'KEN', mask = F)
+bioclim <- raster::getData('worldclim', var='bio', res=2.5) # Bio12n
+roads <- readOGR("KEN_rds", "KEN_roads") # roads
+railroads <- readOGR("KEN_rrd", "KEN_rails") # railroads
+lakes <- readOGR("KEN_wat", "KEN_water_areas_dcw") # inland lakes
+canals <- readOGR("KEN_wat", "KEN_water_lines_dcw") #inland canals and rivers
 
 # set crs ----
-wgs84 <- '+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 '
+wgs84 <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 proj4string(STH_kenya) <- wgs84 %>% CRS()
 proj4string(roads) <- wgs84 %>% CRS()
 proj4string(railroads) <- wgs84 %>% CRS()
@@ -207,7 +212,6 @@ railroads_map <- railroads %>% crop(STH_kenya %>% extent())
 lakes_map <- lakes %>% crop(STH_kenya %>% extent())
 canals_map <- canals %>% crop(STH_kenya %>% extent())
 
-STH_kenya_df <- read.csv("STH_kenya_covariates.csv")
 pal = colorNumeric("Reds", STH_kenya_df$tri_prev)
 
 map <- leaflet() %>% addProviderTiles("CartoDB.Positron") %>%
@@ -229,81 +233,210 @@ map
 
 In the map above, **points in shades of red** are whipworm prevalence points, **blue lines and polygons** are inland waterbodies and **grey lines** are roads and railroads. For illustration purposes, I have clipped these features to the bounding box of the whipworm prevalence data, which is in and around western Kenya.
 
-#### Covariate transformations
+After loading the covariates, I rasterized all vector data, resampled the rasters, and calculated distances between each prevalence point and the nearest lake, rivers/canal, road, and railroad.
 
-I applied the following transformations to my covariates data:
+#### Rasterizing all vector data
 
-* resampling the altitude raster, and
-* calculating distances between prevalence points to lakes, rivers/canals, roads, and railroads.
+I rasterized my four covariates containing vector data from the DCW database:
 
-##### 1) Resampling altitude raster
+* lakes shapefile
+* canals/lakes shapefile
+* roads shapefile
+* railroads shapefile
 
-An initial look at my two raster layers - Bio12 and altitude - indicated that the Bio12 raster was at a higher resolution than the altitude, and that both had different extents:
+First, I re-projected all of my vector data into the WGS84 coordinate reference system:
 
-```{r, echo=T}
-alt <- raster::getData('alt', country = 'KEN', mask = F)
-alt
+```{r, echo=F}
+KEN_Adm_0 <- KEN_Adm_0 %>% spTransform(CRS(wgs84))
+proj4string(STH_kenya) <- wgs84 %>% CRS()
+
+roads <- roads %>% spTransform(CRS(wgs84))
+canals <- canals %>% spTransform(CRS(wgs84))
+railroads <- railroads %>% spTransform(CRS(wgs84))
+lakes <- lakes %>% spTransform(CRS(wgs84))
 ```
 
-```{r, echo=T}
-bioclim <- raster::getData('worldclim', var='bio', res=2.5) # Bio12, higher resolution
-bioclim[[12]]
+Next, I rasterized each covariate with a step-wise process. Here is the process used for rasterizing the roads shapefile, which contains spatial lines:
+
+```{r, echo=F, warning=F}
+# rasterize roads ----
+rs <- raster(extent(roads), crs=projection(wgs84))
+rs[] <- 1:ncell(rs)
+
+rsp <- rs %>% rasterToPolygons()
+rp <- roads %>% raster::intersect(rsp)
+rp$length <- rgeos::gLength(rp, byid=TRUE) / 1000
+x <- tapply(rp$length, rp$layer, sum)
+
+roads_r <- rs %>% raster()
+roads_r[as.integer(names(x))] <- x
 ```
+
+A plot of the newly produced raster (in this case, roads) revealed that rasterization worked:
 
 ```{r, include=F}
-KEN_Adm_0 <- raster::getData("GADM", country="KEN", level=0)
-KEN_bioclim <- bioclim[[12]] %>% crop(KEN_Adm_0 %>% extent())
-KEN_alt <- alt %>% crop(KEN_bioclim %>% extent())
-# resample higher res raster using lower res raster as reference
-KEN_bioclim_resamp <- KEN_bioclim %>% resample(KEN_alt, method = "ngb")
+raster_colorPal <- colorNumeric(palette = terrain.colors(64), reverse = T, domain = values(roads_r), na.color = NA)
+
+basemap <- leaflet() %>% addProviderTiles("CartoDB.Positron")
+
+map_kenya <- basemap %>%
+  addRasterImage(x = roads_r, color = raster_colorPal, opacity = 0.5) %>%
+    addPolylines(data = roads, weight=1.5, color = "dimgrey") %>%
+    addLegend(title = "Density of roads, Kenya, 1992 DCW",
+            values = values(roads_r), pal = raster_colorPal)
 ```
 
-I resampled the Bio12 raster to match the lower resolution of the altitude raster to ensure that the rasters were comparable in my forthcoming regression analysis. Because the annual precipitation data is continuous, I interpolated the data using a nearest-neighbor approach, which assigns the value of the nearest cell to cells in the prediction grid. The resampling procedure worked. We can see the altitude data's extent and resolution:
+```{r, echo=F}
+map_kenya
+```
+
+```{r, echo=F, warning=F}
+# rasterize canals ----
+rs <- raster(extent(canals), crs=projection(wgs84))
+rs[] <- 1:ncell(rs)
+
+rsp <- rs %>% rasterToPolygons()
+rp <- roads %>% raster::intersect(rsp)
+rp$length <- rgeos::gLength(rp, byid=TRUE) / 1000
+x <- tapply(rp$length, rp$layer, sum)
+
+canals_r <- rs %>% raster()
+canals_r[as.integer(names(x))] <- x
+
+# canals_r %>% plot()
+# canals %>% lines()
+# KEN_Adm_0 %>% lines()
+
+# rasterize railroads ----
+rs <- raster(extent(railroads), crs=projection(wgs84))
+rs[] <- 1:ncell(rs)
+
+rsp <- rs %>% rasterToPolygons()
+rp <- roads %>% raster::intersect(rsp)
+rp$length <- rgeos::gLength(rp, byid=TRUE) / 1000
+x <- tapply(rp$length, rp$layer, sum)
+
+railroads_r <- rs %>% raster()
+railroads_r[as.integer(names(x))] <- x
+
+# railroads_r %>% plot()
+# railroads %>% lines()
+# KEN_Adm_0 %>% lines()
+```
+
+To rasterize my lakes vector data, I applied a method for rasterizing spatial polygons as shown below:
+
+```{r, echo=T}
+# rasterize lakes ----
+ext <-  extent(33.90959, 41.92622, -4.720417, 5.061166)
+xy <- ext %>% bbox() %>% as.matrix() %>% apply(1, diff) %>% abs()
+n <- 5
+r <- raster(ext, ncol=xy[1]*n, nrow=xy[2]*n)
+lakes_r <- lakes %>% rasterize(r, fun='first')
+```
+
+This also successfully rasterized my lakes data:
+
+```{r, include=F}
+raster_colorPal <- colorNumeric(palette = hcl.colors(64), reverse = T, domain = values(lakes_r), na.color = NA)
+
+basemap <- leaflet() %>% addProviderTiles("CartoDB.Positron")
+
+map_kenya <- basemap %>%
+  addRasterImage(x = lakes_r, color = raster_colorPal, opacity = 0.5) %>%
+    addPolygons(data = lakes, weight=1.5, color = "lightblue") %>%
+    addLegend(title = "Density of lakes, Kenya, 1992 DCW",
+            values = values(lakes_r), pal = raster_colorPal)
+```
+
+```{r, echo=F}
+map_kenya
+```
+
+#### Resampling rasters
+
+After rasterizing my vector data, I cropped each of the 6 raster layers to match the extent of the Kenya Admin 1 Level per the GADM, then resampled all 6 of my raster layers to the lowest resolution raster of the set: the altitude raster layer.
+
+```{r, echo=F}
+KEN_alt <- alt %>% crop(KEN_Adm_0 %>% extent())
+KEN_bioclim <- bioclim[[12]] %>% crop(KEN_Adm_0 %>% extent())
+KEN_canals_r <- canals_r %>% crop(KEN_Adm_0 %>% extent())
+KEN_roads_r <- roads_r %>% crop(KEN_Adm_0 %>% extent())
+KEN_railroads_r <- railroads_r %>% crop(KEN_Adm_0 %>% extent())
+KEN_lakes_r <- lakes_r %>% crop(KEN_Adm_0 %>% extent())
+
+KEN_bioclim_resamp <- KEN_bioclim %>% resample(KEN_alt, method = "ngb")
+KEN_canals_r_resamp <- KEN_canals_r %>% resample(KEN_alt, method = "ngb")
+KEN_roads_r_resamp <- KEN_roads_r %>% resample(KEN_alt, method = "ngb")
+KEN_railroads_r_resamp <- KEN_railroads_r %>% resample(KEN_alt, method = "ngb")
+KEN_lakes_r_resamp <- KEN_lakes_r %>% resample(KEN_alt, method = "ngb")
+
+# takes quite a while
+# distance_to_lakes_r <- KEN_lakes_r_resamp %>% distance()
+# distance_to_canals_r <- KEN_canals_r_resamp %>% distance()
+# distance_to_roads_r <- KEN_roads_r_resamp %>% distance()
+# distance_to_railroads_r <- KEN_railroads_r_resamp %>% distance()
+```
+
+Because the annual precipitation data is continuous, I resampled using a nearest-neighbor approach, which assigns the value of the nearest cell to cells in the prediction grid. The resampling procedure worked.
+
+We can see that the extent and resolution of all of raster layers now match up, and are ready for calculating distances:
 
 ```{r, echo=T}
 KEN_alt
-```
-
-And the resampled annual precipitation raster's extent and resolution:
-
-```{r, echo=T}
 KEN_bioclim_resamp
+KEN_canals_r_resamp
+KEN_roads_r_resamp
+KEN_railroads_r_resamp
+KEN_lakes_r_resamp
 ```
 
-The resolution and extents now match up and can be used as covariates in regressions.
+#### Calculating distances
 
-##### 2) Calculating distances
+I calculated distance between prevalence points to each feature using the `distance` command. This command served to generate raster layers of nothing but distances. Finally, I extracted values from the distance rasters as columns into my data.frame.
 
-I calculated the distance in meters from each whipworm prevalence point to the nearest of each of the following 4 features: lakes, rivers/canals, roads, and railroads. I primarily used the `dist2line` function for this task. Each minimum distance was saved as a column in my dataset, and represents a unique distance-based covariate in the spatial and non-spatial regression analysis.
+```{r, echo=F}
+# STH_kenya_df <- STH_kenya %>% as.data.frame() %>% select(-long.1, -lat.1)
+# 
+# STH_kenya_df <- STH_kenya_df %>%
+#   mutate(alt = raster::extract(KEN_alt, STH_kenya_df %>% select(long, lat)),
+#          bio12 = raster::extract(KEN_bioclim_resamp, STH_kenya_df %>% select(long, lat)),
+#          lakes = raster::extract(distance_to_lakes_r, STH_kenya_df %>% select(long, lat)),
+#          canals = raster::extract(distance_to_canals_r, STH_kenya_df %>% select(long, lat)),
+#          roads = raster::extract(distance_to_roads_r, STH_kenya_df %>% select(long, lat)),
+#          railroads = raster::extract(distance_to_railroads_r, STH_kenya_df %>% select(long, lat)))
+```
 
-I also rasterized distance-based covariates which were included in my spatial regression to predict with them, and generate a risk map in the final step.
+The extraction revealed two immediate problems with data availability: 1) I could not run regressions using distance to canals/lakes because all extractions had a value of 0:
+
+```{r, echo=F}
+STH_kenya_df %>% select(canals) %>% summary()
+```
+
+And 2) I could not run regressions using distance to roads because only the following two values were non-zero extractions:
+
+```{r, echo=F}
+STH_kenya_df %>% select(roads) %>% head(2)
+```
 
 ### Spatial and non-spatial regression analyses
 
-For my regression analysis, I first specified non-spatial generalized linear models (GLMs) with various combinations of the 6 covariates (4 distance-based covariates, annual precipitation, and elevation). All models specified included binomial outputs. Some of the model specifications resulted in intercepts that had a negative coefficient, and I excluded these models from consideration. The primary candidates in terms of model specification were:
+I specified non-spatial generalized linear models (GLMs) with various combinations of the 4 covariates available (*bio12, altitude, distance to lakes,* and *distance to railroads*). All models specified included binomial outputs. Importantly, I determined that models that included *distance to roads* resulted in a negative coefficient. I dropped this variable from the models. 
 
-1. A non-spatial GLM with 2 covariates: altitude, and annual precipitation.
-2. A non-spatial GLM with 4 covariates: altitude, distance to canals, distance to lakes, and distance to roads
+I used two criteria to determine model fit:
+* lowest residual deviances
+* lowest cross-validated mean squared error.
 
-Using a step-wise process of feature selection, I compared residual deviance values and cross-validated mean squared errors to identify the model with the lowest residual deviance.
-
-I ultimately chose non-spatial GLM with 4 covariates: altitude, distance to canals, distance to lakes, and distance to roads. This model:
-
-* had a positive coefficient on the intercept,
-* the lowest residual deviance values, and
-* the lowest cross-validated mean squared error.
-
-Non-spatial GLM with 4 covariates:
+The model that fit this criteria was the 3-covariate non-spatial GLM with *altitude, annual precipitation, and distance to lakes:*
 
 ```{r, echo = F}
-options(scipen = 999)
 glm_mod_1 <- glm(cbind(tri_np, round(tri_nneg)) ~
-                   alt +
-                   dist_to_canals + dist_to_lakes +
-                   dist_to_roads,
+                   alt + bio12 + lakes,
                  data=STH_kenya_df, family=binomial())
 glm_mod_1 %>% summary()
 ```
+
+I also used the deviance residuals evaluate model robustness. The third quartile (3Q) of the deviance residuals has a value of 0.91. This means that the first 75 percent of our model observations are within an acceptable distance of our predicted values, with "acceptable" being defined as a value less than 2.
 
 After choosing the 4-covariate GLM, I ran a few diagnostics to determine the extent of residual spatial autocorrelation. I first examined a residual plot for any linear patterns:
 
@@ -317,10 +450,9 @@ residual_plot
 
 The plot illustrates a lack of linearity. This indicates that these covariates, while statistically significant, still do not explain much of the spatial pattern underlying the whipworm prevalence data.
 
-I then used a correlogram to examine clustering effects. I took note of the highest distance class at which statistically significant residual clustering can be detected. The 4-covariate, non-spatial GLM exhibits residual clustering up to 0.15 decimal degrees as shown in the correlogram below.
+I then used a correlogram to examine clustering effects. I took note of the highest distance class at which statistically significant residual clustering can be detected.
 
 ```{r, echo=F}
-options(scipen = -1)
 nbc <- 10
 cor_r <- pgirmess::correlog(coords=STH_kenya_df %>% select(long, lat),
                             z=glm_mod_1$residuals,
@@ -342,14 +474,15 @@ cor %>% subset(variable %in% "residuals_glm") %>% ggplot(aes(dist.class, coef)) 
 
 ```
 
-Finally, I specified a spatial regression to correct for the residual spatial autocorrelation. I used a Matern model, which includes a spatially-correlated fixed effect, as well as binomial outputs as shown below.
+It seems that the Moran's I statistic is not statistically significant at any of the distance classes. This indicates that we have **no** residual spatial autocorrelation. Our non-spatial GLM has independent and identically distributed residuals (iid), satisfying a key assumption of linear regression modeling.
+
+However, I ran a spatial regression regardless to see how the inclusion of a spatially-correlated fixed effect might improve model fit.
+
+I ran a Matern model with binomial outputs:
 
 ```{r, echo=F}
-options(scipen = 999)
 matern <- spaMM::fitme(cbind(tri_np, round(tri_nneg)) ~
-                         alt +
-                         dist_to_canals + dist_to_lakes +
-                         dist_to_roads +
+                         alt + bio12 + lakes +
                          Matern(1|lat+long),
                        data=STH_kenya_df, family=binomial())
 matern %>% summary()
@@ -364,29 +497,25 @@ lower <- coefs[row,'Estimate'] - 1.96*coefs[row, 'Cond. SE']
 upper <- coefs[row,'Estimate'] + 1.96*coefs[row, 'Cond. SE']
 or_ci_alt <- c(lower, upper) %>% exp()
 
-row <- row.names(coefs) %in% c('dist_to_canals')
+row <- row.names(coefs) %in% c('bio12')
 lower <- coefs[row,'Estimate'] - 1.96*coefs[row, 'Cond. SE']
 upper <- coefs[row,'Estimate'] + 1.96*coefs[row, 'Cond. SE']
-or_ci_dist2canals <- c(lower, upper) %>% exp()
+or_ci_bio12 <- c(lower, upper) %>% exp()
 
-row <- row.names(coefs) %in% c('dist_to_lakes')
+row <- row.names(coefs) %in% c('lakes')
 lower <- coefs[row,'Estimate'] - 1.96*coefs[row, 'Cond. SE']
 upper <- coefs[row,'Estimate'] + 1.96*coefs[row, 'Cond. SE']
 or_ci_dist2lakes <- c(lower, upper) %>% exp()
 
-row <- row.names(coefs) %in% c('dist_to_roads')
-lower <- coefs[row,'Estimate'] - 1.96*coefs[row, 'Cond. SE']
-upper <- coefs[row,'Estimate'] + 1.96*coefs[row, 'Cond. SE']
-or_ci_dist2roads <- c(lower, upper) %>% exp()
-
 ```
 
 * Altitude: **`r or_ci_alt`** 
-* Distance to rivers/canals: **`r or_ci_dist2canals`** 
+* Annual Precipitation: **`r or_ci_bio12`** 
 * Distance to lakes: **`r or_ci_dist2lakes`** 
-* Distance to roads: **`r or_ci_dist2roads`** 
 
-I checked the residual plot and correlogram for the spatial regression to determine if the inclusion of the spatially-correlated fixed effect removed the residual spatial autocorrelation. Specifically, I looked for linearity in the residual plot, as shown below.
+Next, I checked the residual plot and correlogram for the spatial regression to determine the effect of including the spatially-correlated fixed effect.
+
+Residual plot:
 
 ```{r, echo=F}
 plot <- ggplot() + geom_point(aes(matern$fv, STH_kenya_df$tri_prev_logit)) +
@@ -396,8 +525,8 @@ plot <- ggplot() + geom_point(aes(matern$fv, STH_kenya_df$tri_prev_logit)) +
 plot
 ```
 
-I also looked for a lack of clustering across all distance classes of the correlogram corresponding to the spatial regression, as shown below.
- 
+Correlogram:
+
 ```{r, echo=F}
 nbc <- 10
 cor_r <- pgirmess::correlog(coords = STH_kenya_df %>% select(long, lat),
@@ -419,7 +548,7 @@ cor %>% subset(variable %in% "residuals_glm") %>% ggplot(aes(dist.class, coef)) 
   ggtitle("Correlogram (Matern)")
 ```
 
-The spatial regression residual plot indicates linearity between observed and expected values. Similarly, our correlogram indicates that at no distance classes do we have a statistically significant Moran's I statistic. This means that the inclusion of the spatially correlated fixed effect removed all residual clustering successfully. Our spatial model has independent and identically distributed residuals (iid), satisfying a key assumption of linear regression modeling.
+The spatial regression residual plot indicates linearity between observed and expected values. This means that the inclusion of the spatially-correlated fixed effect improved our model fit. 
 
 ### Model cross-validation
 
@@ -436,9 +565,7 @@ for(fold in 1:length(folds_list)){
   validation_data <- STH_kenya_df[folds_list[[fold]], ]
   
   fold_mod_spatial <- spaMM::fitme(cbind(tri_np, round(tri_nneg)) ~
-                           alt +
-                           dist_to_canals + dist_to_lakes +
-                           dist_to_roads +
+                           alt + bio12 + lakes +
                            Matern(1|lat+long),
                          data=STH_kenya_df, family=binomial())
   
@@ -466,6 +593,8 @@ cross_validated_prediction %>% mse(observed)
 
 ### Risk mapping
 
+Finally, I used the spatial regression to generate a risk map of whipworm prevalence across Kenya, as shown below. To generate the risk map, I rasterized model covariates, created a rasterstack with column names that matched model covariate names, and used the Matern model specification to predict across the raster stack. The risk map is shown below, masked to Kenya Admin 1 bounds.
+
 ```{r, include=F}
 latitude_raster <- longitude_raster <- raster(nrows = KEN_alt %>% nrow(),
                                               ncols = KEN_alt %>% ncol(),
@@ -474,71 +603,68 @@ latitude_raster <- longitude_raster <- raster(nrows = KEN_alt %>% nrow(),
 longitude_raster[] <- coordinates(longitude_raster)[,1]
 latitude_raster[] <- coordinates(latitude_raster)[,2]
 
-pred_stack <- stack(KEN_alt, KEN_bioclim_resamp, longitude_raster, latitude_raster)
-names(pred_stack) <- c('alt', 'bio12', 'long', 'lat')
+pred_stack <- stack(KEN_alt, KEN_bioclim_resamp, KEN_lakes_r_resamp,
+                    longitude_raster, latitude_raster)
+names(pred_stack) <- c('alt', 'bio12', 'lakes', 'long', 'lat')
 
 matern2 <- spaMM::fitme(cbind(tri_np, round(tri_nneg)) ~
-               alt + bio12 +
+               alt + bio12 + lakes +
                Matern(1|lat+long),
              data=STH_kenya_df, family=binomial())
 
 predicted_risk <- raster::predict(pred_stack, matern2, type='response')
+
+basemap <- leaflet() %>% addProviderTiles("CartoDB.Positron")
+
+raster_colorPal <- colorNumeric(palette = topo.colors(64), domain = values(predicted_risk),
+                                na.color = NA)
+
+map_kenya <- basemap %>%
+  addRasterImage(x = predicted_risk, color = raster_colorPal) %>%
+  addPolygons(data = KEN_Adm_0, fillOpacity = 0, color = "grey", weight = 3)
+
+map_kenya <- map_kenya %>%
+  addLegend(title = "Predicted risk, whipworm prevalence",
+            values = values(predicted_risk),
+            pal = raster_colorPal)
 ```
 
-Finally, I used the spatial regression to generate a risk map of whipworm prevalence across Kenya, as shown below. To generate the risk map, I rasterized model covariates, created a rasterstack with column names that matched model covariate names, and used the Matern model specification to predict across the raster stack. The risk map is shown below, masked to Kenya Admin 1 bounds.
-
 ```{r, echo=F}
-predicted_risk %>% mask(KEN_Adm_0) %>% plot(main="Whipworm prevalence risk map, Kenya",
-                        xlab="Latitude", ylab="Longitude")
-KEN_Adm_0 %>% lines()
+map_kenya
 ```
 
 ## Results
 
 Two key findings can be delineated from this analysis:
 
-1. With the inclusion of a spatially-correlated fixed effect, **none** of our four covariates of interest (altitude, distance to lakes, distance to canals/rivers, and distance to roads) have statistically significant associations with *T.Trichiura* prevalence.
-
-The 95% confidence intervals expressed as odds ratios of our spatial regression lead us to this conclusion. The coefficients indicate that the inclusion of the spatially correlated fixed effect effectively removed the statistically significant association between *T.Trichiura* prevalence and each of our four covariates of interest seen on the non-spatial GLM. This ultimately indicates that space accounts for much of that variation in the spatial pattern of whipworm prevalence.
-
-We can evidence this using an anlysis of the odds ratios on each covariate coefficient in the Matern model as well:
+1. Altitude, annual precipitation, and distance to lakes are correlated with whipworm prevalence to a statistically significant degree, with p-values of `<6.75e-11`, `< 2e-16`, and `< 2e-16` respectively. Our non-spatial GLM also does *not* exhibit global clustering.
 
 ```{r, include=F}
-or_alt = ((1 - exp(-0.00382032))*100) %>% round(4)
-or_dist2canals = ((1 - exp(-0.00009361))*100) %>% round(4)
-or_dist2lakes = ((1 - exp(-0.00001498))*100) %>% round(4)
-or_dist2roads = (1+0.000276 - 1) %>% round(4)
+or_alt = matern$fixef[[2]] %>% exp()
+or_bio12 = matern$fixef[[3]] %>% exp()
+or_dist2lakes = matern$fixef[[4]] %>% exp()
 ```
 
-* *Altitude*: A one-unit increase in altitude is associated with only a `r or_alt` percent decrease in testing positive for whipworm.
-* *Distance to rivers/canals*: A one-unit increase in distance to the nearest river or canal is associated with only a `r or_dist2canals` percent decrease in testing positive for whipworm.  
-* *Distance to lakes*: A one-unit increase in distance to the nearest river or canal is associated with only a `r or_dist2lakes` percent decrease in testing positive for whipworm.  
-* *Distance to roads*: A one-unit increase in distance to the nearest road is associated with only a `r or_dist2roads` percent increase in testing positive for whipworm.  
+2. The inclusion of a spatially-correlated fixed effect improves model fit. However, the marginal impact of each of these factors on whipworm prevalence in western Kenya is extremely small. Here are the odds ratios:
 
-2. The risk map generated with our spatial regression indicates lower risk of whipworm prevalence around western Kenya. However, there are significant limitations to this conclusion: this is where our sample was taken from. Thus, our risk estimation suffers somewhat from the lack of availability of whipworm prevalence data from regions outside of western Kenya.
+* Altitude: **`r or_alt`**
+* Bio12: **`r or_bio12`**
+* Distance to lakes: **`r or_dist2lakes`**
 
-#### Results from non-spatial regression analysis
-
-Our non-spatial regression analysis neither evidenced nor contradicted the literature which suggests that proximity to waterbodies, is associated with higher infection prevalence of *T.Trichiura*. It suggested that altitude, distance to waterbodies (lakes, canals, and rivers), and distance to roads were statistically significant predictors of whipworm prevalence, with p-values of 8.81e-09, 1.2348e-07, 0.00303, and <2e-16 respectively. Further, a relatively tiny coefficient on the altitude covariate of the non-spatial GLM also supported conclusions in prior literature that altitude has mixed impacts on *T.Trichiura* prevalence.
-
-However, the odds ratio interpretation of the coefficients shows us that for a one-unit increase in minimum distance to a canal or river, we expect to see only a **`r or_dist2canals`** percent decrease in the odds of testing positive for whipworm. Similarly, a one-unit increase in minimum distance to a lake is correlated with only a **`r or_dist2lakes`** percent decrease in the odds of testing positive for whipworm.
-
-In terms of the robustness of the non-spatial GLM, we can use the deviance residuals, null deviance, and residual deviance to conclude that while our non-spatial GLM specified with these 4 covariates (distance to rivers/canals, distance to lakes, altitude, and distance to roads) might be a relatively good fit for our data, much of the variance in infection prevalence is *not* explained by our covariates. Taking the non-spatial GLM deviance residuals, we can see that the third quartile (3Q) of the deviance residuals has a value of 1.7988, which is less than our benchmark of 2. This means that the first 75 percent of our model observations are within an acceptable distance of our predicted values, with "acceptable" being defined as a value less than 2. However, the model's null deviance totals 1287.54, and its  residual deviance totals 835.89. These are relatively high values and indicate our model could benefit from the inclusion of other, better fit covariates.
+3. The risk map generated with our spatial regression actually indicates *lower risk* of whipworm prevalence close to waterbodies, particularly Lake Victoria. This contradicts findings that closer proximity to Lake Victoria increases whipworm prevalence. However, it is important to note that this conclusion is limited by the fact that this region is primarily where our sample was taken. Thus, our risk estimation suffers somewhat from the lack of availability of whipworm prevalence data from regions outside of western Kenya.
 
 ## Conclusion
 
-All in all, the findings from this study neither evidenced nor contradicted the primary and secondary hypothesis. It neither evidenced nor contradicted the literature which suggests that proximity to waterbodies is associated with higher infection prevalence of *T.Trichiura*, as well as transit accessibility. The study supported conclusions in prior literature that altitude has mixed impacts on *T.Trichiura* prevalence, and it also found no statistically significant association between annual precipitation and *T.Trichiura* prevalence.
+The findings from this study indicated statistically significant marginal impacts of altitude, annual precipitation, distance to waterbodies, or transit accessibility on whipworm prevalence in Western Kenya, however, those impacts were found to be negligible. Thus, this study neither evidenced nor contradicted the primary and secondary hypothesis.
 
-Potential reasons for these insignificant results include the two factors that affected our cluster analysis:
+Potential reasons for these results include the two factors that affected our analysis:
 
 1. The data is not normally distributed even with a logit transformation, which is problematic for conducting a hypothesis test using the Moran's I.
 2. There does not seem to be symmetry in the neighbor structure, which is problematic for defining spatial weights.
 
-The first point limits our conclusions around the existence of clustering because the null hypothesis of the Moran's I is a normal distribution. Our outcomes data should be normally distributed for the hypothesis test to be conclusive.
+The first point limits our conclusions around the existence of clustering because the null hypothesis of the Moran's I is a normal distribution. Our outcomes data should be normally distributed for the hypothesis test to be conclusive. The second point is problematic because it points to a logical fallacy; it means that if k is a neighbor of j, then j is *not* a neighbor of k. Constructing neighbor structures in a cluster analysis of the whipworm prevalence data yields asymmetrical results and this should be investigated.
 
-The second point is problematic because it points to a logical fallacy; it means that if k is a neighbor of j, then j is *not* a neighbor of k. Constructing neighbor structures in a cluster analysis of the whipworm prevalence data yields asymmetrical results and this should be investigated.
-
-Other potential reasons include lack of data availability in regions outside of western Kenya, and small sample size within western Kenya with regards to prevalence points (n = 68). These reasons also limit the conclusions we can draw around infection risk outside of western Kenya. 
+Other potential reasons include the outdatedness and incompleteness of the DCW data. The DCW database was compiled only in 1992, and Langaas et. al. (1995) has pointed to the challenges of using this data for statistical analysis due its outdatedness and incompleteness.
 
 ## Citations
 
@@ -563,4 +689,3 @@ Langaas, Sindre. Completeness of the Digital Chart of the World (DCW) database. 
 NASA Shuttle Radar Topography Mission (SRTM)(2013). Shuttle Radar Topography Mission (SRTM) Global. Distributed by OpenTopography. https://doi.org/10.5069/G9445JDF Accessed: 2020-05-03
 
 Siza, Julius E., et al. "Prevalence of schistosomes and soil-transmitted helminths and morbidity associated with schistosomiasis among adult population in Lake Victoria Basin, Tanzania." The Korean journal of parasitology 53.5 (2015): 525.
-
