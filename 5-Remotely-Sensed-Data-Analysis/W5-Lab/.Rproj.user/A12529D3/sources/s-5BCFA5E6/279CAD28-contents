@@ -1,0 +1,58 @@
+---
+title: "Precipitation in Kenya"
+author: "Sri Ramesh"
+date: "4/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This R file simply illustrates a leaflet plot of long-term average precipitation in Kenya each January from 1970 to 2000. The precipitation data time-series comes from *worldclim.org*.
+
+```{r, warning=F, message=F, echo=FALSE}
+# Precipitation from worldclim at the 0.5 resolution (minutes of a degree)... 
+KEN_Adm0 <- raster::getData(name = "GADM", country = "KEN", level = 0)
+
+# bottom half of Kenya (below equator)
+KEN_prec_0.5_bottom <- raster::getData(name = "worldclim", var = "prec",
+                                     res = 0.5, lat = -3, lon = 39)
+
+# top half of Kenya (above equator)
+KEN_prec_0.5_top <- raster::getData(name = "worldclim", var = "prec",
+                                res = 0.5, lat = 3, lon = 35)
+# merge two rasters
+KEN_prec_0.5 <- raster::merge(x = KEN_prec_0.5_bottom,
+                              y = KEN_prec_0.5_top)
+
+# Restrict to Jan
+KEN_prec_0.5_Jan <- KEN_prec_0.5[[1]]
+
+# Crop to Kenya extent 
+KEN_prec_0.5_Jan_Crop_Unmasked <- raster::crop(x = KEN_prec_0.5_Jan,
+                                               y = KEN_Adm0)
+
+# Mask to Kenya
+KEN_prec_0.5_Jan_Crop <- raster::mask(x = KEN_prec_0.5_Jan_Crop_Unmasked,
+                                      mask = KEN_Adm0)
+
+# Layer map
+raster_colorPal_prec_JAN <- colorNumeric(palette = topo.colors(64),
+                                         domain = values(KEN_prec_0.5_Jan_Crop),
+                                         na.color = NA)
+
+leaflet() %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addRasterImage(x = KEN_prec_0.5_Jan_Crop,
+                 color = raster_colorPal_prec_JAN) %>%
+  addPolygons(data = KEN_Adm0,
+              popup = KEN_Adm0$NAME_0,
+              label = KEN_Adm0$NAME_0,
+              fillOpacity = 0,
+              color = "red",
+              weight = 3) %>%
+  addLegend(title = "Jan precipitation (mm)<br>(0.5' res)",
+            values = values(KEN_prec_0.5_Jan_Crop),
+            pal = raster_colorPal_prec_JAN)
+```

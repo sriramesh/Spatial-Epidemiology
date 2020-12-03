@@ -1,0 +1,8 @@
+"0","KEN_Adm0 <- raster::getData(name = ""GADM"", country = ""KEN"", level = 0)"
+"0","KEN_prec_0.5_bottom <- raster::getData(name = ""worldclim"", var = ""prec"", res = 0.5, lat = -3, lon = 39)"
+"0","KEN_prec_0.5_top <- raster::getData(name = ""worldclim"", var = ""prec"", res = 0.5, lat = 3, lon = 35)"
+"0",""
+"0","KEN_prec_0.5 <- raster::merge(x = KEN_prec_0.5_bottom, y = KEN_prec_0.5_top)"
+"0","#load(file = ""KEN_prec_0.5.rds"")"
+"0",""
+"0","KEN_prec_0.5_Jan <- KEN_prec_0.5[[1]]"

@@ -1,0 +1,6 @@
+"0","nairobi_cases_ppp <- ppp(nairobi_cases$lng, nairobi_cases$lat, window = ken_owin, "
+"0","                         marks=as.factor(nairobi_cases$case))"
+"0","rel_risk_est <- nairobi_cases_ppp %>% relrisk(relative = T)"
+"0","par(mfrow=c(1,1))"
+"0","rel_risk_est %>% plot(main=""Relative Risk Estimate"")"
+"0",""

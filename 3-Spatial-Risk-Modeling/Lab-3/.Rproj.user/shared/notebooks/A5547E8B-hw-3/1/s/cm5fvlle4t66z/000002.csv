@@ -1,0 +1,6 @@
+"0","nairobi_cases <- read.csv(""cases_nairobi.csv"")"
+"0","nairobi_cases_spdf <- SpatialPointsDataFrame(coords = nairobi_cases[,c(""lng"", ""lat"")], "
+"0","                                             data = nairobi_cases[,c(""X"", ""case"")])"
+"0",""
+"0","KEN_Adm0 <- raster::getData('GADM',country='KEN',level=0)"
+"0",""

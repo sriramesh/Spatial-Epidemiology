@@ -1,0 +1,7 @@
+"0","# 2 check fitted values for Model 4 -----"
+"0","plot_4 <- ggplot() + geom_point(aes(glm_mod_4$fitted, BCG_vaccination_UGA$prevalence)) +"
+"0","  xlab(""Fitted BCG Vaccination Prevalence"") +"
+"0","  ylab(""Observed BCG Vaccination Prevalence"") +"
+"0","  ggtitle(""BCG Vaccination Prevalence Fitted v. Observed, Model 4 (no spatial effect)"")"
+"0","plot_4"
+"0",""

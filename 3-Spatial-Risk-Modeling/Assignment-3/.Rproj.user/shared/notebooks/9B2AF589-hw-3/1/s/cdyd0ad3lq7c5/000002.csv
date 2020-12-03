@@ -1,0 +1,5 @@
+"0","# bin by distance"
+"0","Vario <- TZA_hookworm_data_geo %>% variog(max.dist = MaxDist, uvec = seq(0.01, MaxDist, 0.2)) "
+"1","variog: computing omnidirectional variogram
+"
+"0","Vario %>% plot(main = ""Variogram, simplified"")"

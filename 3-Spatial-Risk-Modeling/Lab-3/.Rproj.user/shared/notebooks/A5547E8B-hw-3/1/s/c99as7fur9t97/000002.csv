@@ -1,0 +1,8 @@
+"0","# define window"
+"0","ken_owin <- owin(xrange=range(nairobi_cases$lng), yrange=range(nairobi_cases$lat))"
+"0","# make ppp object"
+"0","nairobi_cases_ppp <- ppp(nairobi_cases$lng, nairobi_cases$lat, window = ken_owin, "
+"0","                         marks=as.factor(nairobi_cases$case))"
+"0","# plots"
+"0","par(mfrow=c(2,2))"
+"0","nairobi_cases_ppp %>% density(0.02) %>% plot(main = ""Bandwidth of 0.02"")"

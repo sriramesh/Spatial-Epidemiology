@@ -1,0 +1,2 @@
+"0","KEN_prec_1_Jan_Crop_Unmasked <- KEN_prec_1_Jan_inches %>% raster::crop(y = KEN_Adm0)"
+"0","KEN_prec_1_Jan_Crop <- KEN_prec_1_Jan_Crop_Unmasked %>% raster::mask(mask = KEN_Adm0)"

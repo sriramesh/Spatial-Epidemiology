@@ -1,0 +1,31 @@
+# Precipitation from worldclim at the 0.5 resolution (minutes of a degree)... need to specifiy 'lon' and 'lat' of the tile looked for
+
+KEN_prec_1 <- raster::getData(name = "worldclim",
+                                var = "prec",
+                                res = 2.5)
+
+KEN_prec_1_Jan <- KEN_prec_1[[1]]
+
+raster_colorPal_prec <- colorNumeric(palette = topo.colors(64),
+                                     domain = values(KEN_prec_1_Jan),
+                                     na.color = NA) # Define palette
+
+leaflet() %>% # Plot
+  addProviderTiles("CartoDB.Positron") %>%
+  addRasterImage(x = KEN_prec_1_Jan,
+                 color = raster_colorPal_prec,
+                 group = "January precipitation (mm)") %>%
+  addLegend(title = "January precipitation (mm)<br>(2.5' res)",
+            values = values(KEN_prec_1_Jan),
+            pal = raster_colorPal_prec)  %>%
+  addLayersControl(overlayGroups = c("January precipitation (mm)"))
+
+
+
+
+
+
+
+
+
+

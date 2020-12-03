@@ -1,0 +1,1 @@
+"0","nairobi_cases_ppp %>% density(0.1) %>% plot(main = ""Bandwidth of 0.1"")"

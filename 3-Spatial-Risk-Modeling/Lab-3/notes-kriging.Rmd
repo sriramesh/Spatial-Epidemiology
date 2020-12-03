@@ -1,0 +1,29 @@
+---
+title: "Untitled"
+author: "Sri Ramesh"
+date: "4/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+* Interpolation is used on point level data (eg air quality, hookworm prevalence, malaria prevalence)
+* surveys are done to collect values of air quality, hookworm prevalence, etc. at given locations
+* we're interested mainly in what those surveys say, the values they contain
+* so first we constuct a distance matrix between survey locations. we are calculating the distance from every survey location to every other survey location. let's say we have 5 surveys. this means our matrix is a 5 by 5 grid with a max of 20 different distances contained in the grid itself. the distance matrix' 20 values go into an x-axis on our graph.
+* now we measure the difference in air quality values between a given survey with every other survey in the dataset. the best measure of distance we have is variance (difference between each pair of points, squared), and for archaic reasons, we use semi-variance (half of the variance). so that's another 5 by 5 grid with a max of 20 unique values. these values go into the y-axis of our plot as "semivariance."
+* this plot we have is a plot of semivariance against distance. this plot is called a **semivariogram**. it measures *similarity* of the air quality values (semivariance, y-axis) against the distance-based *closeness* of air quality values (distance classes, x-axis).
+* so we've talked about the axes on the semivariogram, let's take the points on it. these points, put together basically look like a cloud. this cloud shows how closer points are more simliar, in other words, there are many more points at smaller distance classes and lower semivariance. this is basically all to show the presence of clustering - statistically - the presence, statistically, of spatial autocorrelation. this cloud is called a **variocloud**.
+* we can fit a line through the points in our cloud, basically showing a trend upward. this again is showing simply spatial autocorrelation: closer points are more simliar, farther points are less similar.
+* this line that we fit is a regression model. there can be many kinds of models that can describe the spatial pattern/clustering; we just need to find the best one. some are *spherical, exponential, mattern,* etc. the best one is the model that has the lowest sum of squares (which is a parameter common on regression outputs).
+* once we've chosen a model, we're ready to use it to predict values of air quality where surveys were not taken. this model-based method of interpolation is called **kriging.**
+* to krige, we can first create a "prediction grid" **(is this basically a blank grid that tabulates the number of points we want to predict?)**. **let's say this grid says we need to predict 300 missing points to be able to get smoothed map?**
+* then, we can basically apply the model we've chosen (for example, spherical) to estimate the values of air quality at those 300 locations.
+
+* model-based geostatistics: where we combine normal regression modeling with other covariates (ie elevation, temperature, etc) to improve our predictions. the inclusion of these other covariates basically make our model better. they are in fact partly to blame for why air quality is higher in certain locations than others. so  without them, our model predicts clusters where there are not truly clusters. clusters that are truly clusters are those that are closer together simply due to space (and not elevation, temperature, etc.) so model-based geostatistics simply accounts for these covariates, and leaves us with a more accurate identification of clusters due only to a spatial component.
+
+

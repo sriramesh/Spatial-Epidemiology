@@ -1,0 +1,8 @@
+"0","# calculate inverse distance matrix"
+"0","ETH.dists <- ETH_malaria_data %>% select(latitude, longitude) %>% bind_cols() %>% dist() %>% as.matrix()"
+"0",""
+"0","# Take the inverse of the matrix values so that closer values have a larger weight and vice versa"
+"0","ETH.dists.inv <- 1/ETH.dists"
+"0",""
+"0","# replace the diagonal values with zero"
+"0","diag(ETH.dists.inv) <- 0"

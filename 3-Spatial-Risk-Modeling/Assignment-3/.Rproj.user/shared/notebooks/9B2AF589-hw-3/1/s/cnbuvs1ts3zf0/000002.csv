@@ -1,0 +1,3 @@
+"0","# plots"
+"0","par(mfrow=c(2,2))"
+"0","nairobi_cases_ppp %>% density(0.02) %>% plot(main = ""Bandwidth of 0.02"")"

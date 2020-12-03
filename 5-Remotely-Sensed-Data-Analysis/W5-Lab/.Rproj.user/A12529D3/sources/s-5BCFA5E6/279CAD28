@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1586245084464.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "279CAD28",
+    "lastKnownWriteTime" : 1586245346,
+    "last_content_update" : 1586245346248,
+    "path" : "~/Desktop/r-python-stata/2020-Spring/PBHLTH-W272C-Spatial-Epidemiology/W5/W5/w5-assignment.Rmd",
+    "project_path" : "w5-assignment.Rmd",
+    "properties" : {
+        "cursorPosition" : "30,0",
+        "scrollLine" : "12",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

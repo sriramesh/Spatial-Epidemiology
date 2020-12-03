@@ -1,0 +1,6 @@
+"0","xy <- ETH_malaria_data %>% select(longitude, latitude) %>% bind_cols() %>% as.matrix()"
+"0",""
+"0","pgi.cor <- correlog(coords=xy, z=ETH_malaria_data$log_odds, method=""Moran"", nbclass=10)"
+"0",""
+"0","pgi.cor %>% plot(xlab = ""Distance Classes"", ylab = ""Moran's I Statistic"","
+"0","                 main = ""Correlogram: 10 Distance Classes v. Moran's I"")"

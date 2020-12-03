@@ -1,0 +1,1 @@
+"0","TZA_hookworm_data_ppp %>% idw(power=2, at=""pixels"") %>% plot(col=heat.colors(20), main=""Power = 2"")"

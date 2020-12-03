@@ -1,0 +1,6 @@
+"0","maxDist <- ETH_malaria_data %>% select(latitude, longitude) %>% bind_cols() %>% dist() %>% max()"
+"0","maxDist"
+"1","[1]"
+"1"," 7.957449"
+"1","
+"

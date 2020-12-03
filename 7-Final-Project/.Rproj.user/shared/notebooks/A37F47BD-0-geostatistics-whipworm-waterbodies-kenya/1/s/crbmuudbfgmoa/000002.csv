@@ -1,0 +1,6 @@
+"0","# rasterize lakes ----"
+"0","ext <-  extent(33.90959, 41.92622, -4.720417, 5.061166)"
+"0","xy <- ext %>% bbox() %>% as.matrix() %>% apply(1, diff) %>% abs()"
+"0","n <- 5"
+"0","r <- raster(ext, ncol=xy[1]*n, nrow=xy[2]*n)"
+"0","lakes_r <- lakes %>% rasterize(r, fun='first')"

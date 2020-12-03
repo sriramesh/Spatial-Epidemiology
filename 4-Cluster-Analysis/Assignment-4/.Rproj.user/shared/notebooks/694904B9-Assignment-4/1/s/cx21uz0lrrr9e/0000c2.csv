@@ -1,0 +1,5 @@
+"0","# Plot the spatial data against its spatially lagged values (the weighted mean of its neighbors)                         "
+"0","nci <- ETH_malaria_data$log_odds %>% moran.plot(listw=weights,"
+"0","                                               xlab=""Log prevalence (log_odds variable)"","
+"0","                                               ylab=""Spatially lagged log prev"","
+"0","                                               labels=T, pch=16, col=""grey"")"

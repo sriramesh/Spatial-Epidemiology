@@ -1,0 +1,78 @@
+---
+title: "Your Map"
+author: "Sri Ramesh"
+date: "4/12/2020"
+output: html_document
+---
+
+```{r setup, include=F, eval=T, echo=F, message=F, warning=F, error=F}
+# set global options  ----
+options(stringsAsFactors = F)
+
+# load packages  ----
+library(tidyverse)
+library(leaflet)
+library(knitr)
+library(kableExtra)
+library(rgdal)
+library(htmltools)
+library(htmlwidgets)
+
+# read in shapefile of 2020 India DHS ----
+dhs_2020_india <- readOGR("sdr_subnational_data_2020-04-12/shps")
+
+```
+
+Here is a map of the percentage of children 12-23 months who had received all basic vaccinations per the 2020 Demographic Health Survey (DHS) survey in India. The DHS is conducted by USAID and this data comes from the DHS spatial data repository. Data is at the state-level. All values are in percents.
+
+```{r, include=T, eval=T, echo=F, message=F, warning=F, error=F}
+# Define color palette for chloropleth map
+#dhs_2020_india$CHVACCCBAS %>% fivenum()
+
+bins <- c(30, 40, 50, 60, 70, 80, 90, 100)
+pal <- colorBin("YlGnBu", domain = dhs_2020_india$CHVACCCBAS, bins = bins)
+
+# define basemap ----
+basemap <- leaflet() %>% addProviderTiles("Stamen.Watercolor")
+
+# overlay burundi DHS sub-national boundaries ----
+m <- basemap %>% addPolygons(data=dhs_2020_india,
+                        color = "grey",
+                        weight = 1,
+                        fillOpacity = 0.1)
+
+# make chloropleth
+m <- m %>%
+  addPolygons(data=dhs_2020_india,
+              fillColor = ~pal(dhs_2020_india$CHVACCCBAS),
+              weight = 0.7,
+              opacity = 0,
+              color = "white",
+              dashArray = "3",
+              fillOpacity = 0.35,
+              highlight = highlightOptions(
+                weight = 3,
+                color = "#666",
+                dashArray = "",
+                fillOpacity = 0,
+                bringToFront = TRUE),
+              label = dhs_2020_india$DHSREGEN,
+              labelOptions = labelOptions(
+                style = list("font-weight" = "normal", padding = "3px 8px"),
+                textsize = "15px",
+                direction = "auto"))
+
+m <- m %>% addLegend(pal = pal,
+                     values = dhs_2020_india$CHVACCCBAS,
+                     opacity = 0.35,
+                     title = "Percentage of children 12-23 months </br> who had received all 8 basic </br> vaccinations, 2020 DHS India",
+                     position = "topright")
+
+m
+```
+
+```{r table, include=T, eval=T, echo=F, message=F, warning=F, error=F}
+
+dhs_2020_india %>% as.data.frame() %>% select(DHSREGEN, CHVACCCBAS) %>% arrange(desc(CHVACCCBAS)) %>% kable(col.names = c("DHS Sub-National Region", "% Children all 8 basic vaccs")) %>% kable_styling()
+
+```

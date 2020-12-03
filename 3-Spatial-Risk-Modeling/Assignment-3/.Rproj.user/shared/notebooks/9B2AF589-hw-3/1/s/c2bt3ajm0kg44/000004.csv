@@ -1,0 +1,8 @@
+"0","# Convert to a raster"
+"0","TZA_hookworm_data_idw_raster <- TZA_hookworm_data_ppp_idw %>% raster(crs = crs(TZA_Adm_1))"
+"0",""
+"0","# define color ramp"
+"0","colPal <- colorNumeric(tim.colors(), TZA_hookworm_data_idw_raster[], na.color = NA)"
+"0","# layer map"
+"0","basemap_hk %>% addRasterImage(TZA_hookworm_data_idw_raster, col = colPal, opacity = 0.7) %>%"
+"0","  addLegend(pal = colPal, values = TZA_hookworm_data_idw_raster[], title = ""Infection Prevalence (%)"")"

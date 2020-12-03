@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1587929618073.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1519045746",
+    "id" : "EC36957A",
+    "lastKnownWriteTime" : 1587930735,
+    "last_content_update" : 1587930735537,
+    "path" : "~/Desktop/r-python-stata/2020-Spring/PBHLTH-W272C-Spatial-Epidemiology/6-Spatial-Regression-Modeling/V-Fold-Cross-Validation/v-fold-cross-val.R",
+    "project_path" : "v-fold-cross-val.R",
+    "properties" : {
+        "cursorPosition" : "30,0",
+        "scrollLine" : "30"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

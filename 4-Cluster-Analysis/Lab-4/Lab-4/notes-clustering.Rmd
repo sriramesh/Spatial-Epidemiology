@@ -1,0 +1,33 @@
+---
+title: "notes-clustering"
+author: "Sri Ramesh"
+date: "4/13/2020"
+output: html_document
+---
+
+* First order neighbors: direct neighbors (non distance based)
+* Second order: one neighbor removed (non distance based)
+
+* first, select your neighbor definition method
+* then, assign weights to each neighbor link. two ways to assign weights:
+1) Binary: 1 neighbor, 0 not a neighbor (K being the number of nearest neighbors = k nearest neighbors, but still produces a 1 or 0 boolean or BINARY WEIGHTS)
+2) ROW STANDARDIZED weights: we need to assign weights for each neighbor relationship. lets say 1 area has 5 neighbors. the weight assigned to each neighbor is 1/5th, so that the row (that polygon which has 5 neighbors) adds up to 1.
+* usually we wont use row-standardized. we will usually use binary. but the default is row-standardized.
+
+* Moran's I: mostly for **continuous** data (ie detecting global clustering not in land use classification, but in elevation data)
+* Range of Moran's I: [-1, 1] where 0 means no spatial autocorrelation at a global level
+* **Nul hypothesis of Moran's I test: normal distribution. Is that the same as complete spatial randomness?**
+
+* Sum of LISAs should be proportional to the Global Moran's I
+* LL, HH, LH, HL: observed vs. expectation (LL = low is expected and low is observed)
+
+* Case data (ie covid-19 cases) can typically be described as a random variable that takes on a poisson distribution
+* when we map all covid-19 cases on a map, the visual there = point **pattern**
+* case data = point **process** data. there is an underlying process that determines the point pattern we see on a map
+* this point process might be a poisson distribution, which means we can use that distribution to model the disease outbreak
+
+* complete spatial randomness = homogenous poisson process (null hypothesis for the moran's i)
+* stationary = not areas where the rate of disease changes (no local spatial autocorrelation)
+
+* Ripley's K: for case data (ie case-control of malaria)
+* Moran's I: for continuous data (ie malaria prevalence, air quality, etc)
