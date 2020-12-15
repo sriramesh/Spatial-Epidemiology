@@ -1,7 +1,0 @@
-"0","# see if malaria prevalence variable is normally distributed"
-"0","ETH_malaria_data <- ETH_malaria_data %>% mutate(log_odds = logit(pf_pr) + 0.0001)"
-"0",""
-"0","ETH_malaria_data %>% ggplot(aes(x=log_odds)) + geom_histogram() +"
-"0","  xlab(""Log odds of Ethiopia malaria prevalence"") +"
-"0","  ylab(""Frequency"") +"
-"0","  ggtitle(""Histogram of Ethiopia malaria prevalence values"")"

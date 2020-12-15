@@ -1,3 +1,0 @@
-"0","# set window"
-"0","mwanza <- TZA_Adm_1[TZA_Adm_1$NAME_1 %in% ""Mwanza"", ]"
-"0","mwanza_window <- owin(mwanza@bbox[1,], mwanza@bbox[2,])"

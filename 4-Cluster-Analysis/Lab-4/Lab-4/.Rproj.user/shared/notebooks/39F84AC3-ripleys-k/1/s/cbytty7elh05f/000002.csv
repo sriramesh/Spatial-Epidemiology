@@ -1,6 +1,0 @@
-"0","casecontrol_ppp <- ppp(nairobi_cases$long, nairobi_cases$lat,"
-"0","                       range(nairobi_cases$long), range(nairobi_cases$lat),"
-"0","                       marks = as.factor(nairobi_cases$case))"
-"2","Error in owin(...) : 
-  xrange should be a vector of length 2 giving (xmin, xmax)
-"

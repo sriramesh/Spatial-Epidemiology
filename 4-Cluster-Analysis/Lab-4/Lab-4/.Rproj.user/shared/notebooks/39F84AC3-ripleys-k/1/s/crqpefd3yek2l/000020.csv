@@ -1,4 +1,0 @@
-"0",""
-"0","# Calulate the difference in the two functions"
-"0","Kdiff <- eval.fv(KX - KY)"
-"0","Kdiff %>% plot(legendpos=""float"", main=""K function of cases - K function of controls"")"

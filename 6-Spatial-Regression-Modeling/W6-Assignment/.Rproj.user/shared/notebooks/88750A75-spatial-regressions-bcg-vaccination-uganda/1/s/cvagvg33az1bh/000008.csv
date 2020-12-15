@@ -1,7 +1,0 @@
-"0","# prepare window to predict over: Kampala, Uganda"
-"0","UGA_Adm_1 <- raster::getData(""GADM"", country=""UGA"", level=1) # Uganda boundaries"
-"0","proj4string(UGA_Adm_1) <- CRS('+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 ')"
-"0","Kampala <- UGA_Adm_1 %>% subset(NAME_1 %in% ""Kampala"")"
-"0","ntl_2013_kampala <- ntl_2013_raster %>% crop(Kampala) %>% mask(Kampala)"
-"0","ntl_2013_kampala %>% plot(main=""Prediction raster, 2013 Nighttime lights in Kampala region"","
-"0","                          xlab=""Latitude"", ylab=""Longitude"")"

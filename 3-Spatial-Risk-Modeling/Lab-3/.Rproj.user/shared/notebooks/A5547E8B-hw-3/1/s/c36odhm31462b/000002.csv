@@ -1,4 +1,0 @@
-"0","IDW_raster <- IDW %>% raster()"
-"0","plot(IDW_raster - KrigPred_raster, main = ""Difference matrix comparing Kriged estimates to IDW estimates"","
-"0","     xlab = ""Longitude"", ylab = ""Latitude"")"
-"0",""

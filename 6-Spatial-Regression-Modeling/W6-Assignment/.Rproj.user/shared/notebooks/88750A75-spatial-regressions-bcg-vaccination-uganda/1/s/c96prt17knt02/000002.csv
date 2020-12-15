@@ -1,5 +1,0 @@
-"0","pred_raster <- ntl_2013_kampala"
-"0","names(pred_raster) <- c(""ntl_2013"")"
-"0","predicted_risk_masked <- raster::predict(pred_raster, glm_mod_4, type='response') %>% mask(Kampala)"
-"0","predicted_risk_masked %>% plot(xlab=""Latitude"", ylab=""Longitude"","
-"0","                               main=""Predicted prevalence, univariate GLM"")"

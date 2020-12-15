@@ -1,2 +1,0 @@
-"0","# perform idw"
-"0","TZA_hookworm_data_ppp_idw <- TZA_hookworm_data_ppp %>% idw(power = optimal_power, at=""pixels"")"

@@ -1,4 +1,0 @@
-"0",""
-"0","# Calculate the K-function for controls"
-"0","KY <- casecontrol_ppp[casecontrol_ppp$marks %in% 2] %>% Kest(correction=c(""isotropic"", ""Ripley""))"
-"0","KY %>% plot(sqrt(iso/pi) ~ r, main=""K function for controls"")"

@@ -1,5 +1,0 @@
-"0","rel_risk_raster <- rel_risk_est %>% raster(crs = crs(KEN_Adm0))"
-"0","pal <- colorNumeric(palette=tim.colors(64), domain=values(rel_risk_raster), na.color = NA)"
-"0","basemap <- leaflet() %>% addProviderTiles(""CartoDB.Positron"")"
-"0","basemap %>% addRasterImage(rel_risk_raster, opacity=0.6, colors = pal) %>% "
-"0","  addLegend(pal = pal, values = values(rel_risk_raster), title = ""Relative Risk Ratios"")"

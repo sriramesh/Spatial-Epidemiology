@@ -1,3 +1,0 @@
-"0","HK <- read.csv(""tanzania_uganda_hkprev.csv"")"
-"0","TZA_Adm_1 <- raster::getData(""GADM"", country=""TZA"", level=1) # used tanzania instead of uganda"
-"0",""

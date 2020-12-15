@@ -1,7 +1,0 @@
-"0","casecontrol_ppp <- ppp(nairobi_cases$lng, nairobi_cases$lat,"
-"0","                       range(nairobi_cases$lng), range(nairobi_cases$lat),"
-"0","                       marks = as.factor(nairobi_cases$case))"
-"0",""
-"0","# Calculate the K-function for cases"
-"0","KX <- casecontrol_ppp[casecontrol_ppp$marks %in% 1] %>% Kest(correction=c(""isotropic"", ""Ripley""))"
-"0","KX %>% plot(sqrt(iso/pi) ~ r, main=""K function for cases"")"

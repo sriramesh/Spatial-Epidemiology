@@ -1,5 +1,0 @@
-"0","# define ppp object"
-"0","TZA_hookworm_data_ppp <- ppp(HK$x, HK$y, marks = HK$Hookworm_prev_perc, window = mwanza_window)"
-"0","# set parameters for 4 panel display"
-"0","par(mfrow=c(2,2))"
-"0","TZA_hookworm_data_ppp %>% idw(power=0.2, at=""pixels"") %>% plot(col=heat.colors(20), main=""Power = 0.2"")"

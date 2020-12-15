@@ -1,4 +1,0 @@
-"0","KEN_prec_0.5_Jan_inches <- KEN_prec_0.5_Jan * 0.0393701"
-"0",""
-"0","KEN_prec_1_Jan_inches <- KEN_prec_0.5_Jan_inches %>%"
-"0","  raster::aggregate(fact = 2, fun = sum)"

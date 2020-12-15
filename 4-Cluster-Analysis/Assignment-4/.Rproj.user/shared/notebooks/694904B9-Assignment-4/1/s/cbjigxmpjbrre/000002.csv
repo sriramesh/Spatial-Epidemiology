@@ -1,7 +1,0 @@
-"0","# find which points are statistically significant outliers"
-"0","infl <- apply(nci$is.inf,1,any) "
-"0","sum(infl %in% T)"
-"1","[1]"
-"1"," 22"
-"1","
-"
